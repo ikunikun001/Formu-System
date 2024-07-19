@@ -10,6 +10,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import org.hibernate.validator.constraints.URL;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -18,12 +20,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/user")
 public class UserController {
     @Autowired
     private UserService userService;
+    @Autowired
+    private StringRedisTemplate redisTemplate;
     @PostMapping("/register")
     public Result<String> register(@Pattern(regexp = "^\\S{5,16}$") String username, @Pattern(regexp = "^\\S{5,16}$") String password, @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$") String email){
         //查询是否有此用户名
@@ -58,6 +63,9 @@ public class UserController {
             claims.put("username",loginUser.getUsername());
             //携带令牌
             String token=JwtUtils.getToken(claims);
+            // 将令牌存入redis
+            ValueOperations<String, String> op = redisTemplate.opsForValue();
+            op.set(token,token,1, TimeUnit.HOURS);
             return Result.success(token);
         }
         // 密码错误
@@ -87,7 +95,7 @@ public class UserController {
     }
 
     @PatchMapping("/updatePwd")
-    public Result<String> updatePad(@RequestBody Map<String,String> params){
+    public Result<String> updatePad(@RequestBody Map<String,String> params,@RequestHeader("Authorization") String token){
         String oldpassword=params.get("oldPwd");
         String newpassword=params.get("newPwd");
         String repassword=params.get("rePwd");
@@ -98,7 +106,8 @@ public class UserController {
             return Result.error("输入的两次密码不一致");
         }
         userService.updatePwd(oldpassword,newpassword);
-
+        ValueOperations<String, String> op = redisTemplate.opsForValue();
+        op.getOperations().delete(token);
         return Result.success("修改成功!");
     }
 }
