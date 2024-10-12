@@ -3,6 +3,7 @@ package com.wjf.forumsystem.controller;
 import com.wjf.forumsystem.entity.Result;
 import com.wjf.forumsystem.utils.AliyunOSSUtils;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +16,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/file")
 public class FileUpLoadController {
+
+    //添加板块
     @PostMapping("/upload")
     public Result<String> upload(MultipartFile file) throws Exception {
         String originalFilename = file.getOriginalFilename();
@@ -25,4 +28,5 @@ public class FileUpLoadController {
         String url=AliyunOSSUtils.upload(filename, file.getInputStream());
         return Result.success(url);
     }
+
 }
