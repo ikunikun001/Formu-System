@@ -23,13 +23,14 @@ public class LoginInterceptor implements HandlerInterceptor {
             ValueOperations<String, String> op = redisTemplate.opsForValue();
             String redisToken=op.get(token);
             if(redisToken==null){
-                throw new RuntimeException();
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return false;
             }
             Map<String,Object> cliams=JwtUtils.ParseToken(token);
             ThreadLocalUtils.set(cliams);
             return true;
-        } catch (Exception e) {
-            response.setStatus(401);
+        }  catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
 
